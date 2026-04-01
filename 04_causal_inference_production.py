@@ -17,13 +17,6 @@ from scipy.optimize import minimize
 import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 
-# Import Tufte plotting utilities
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from tda_utils import setup_tufte_plot, TufteColors
-
-
 # Configuration
 DATA_PATH = Path('../../egrid_all_plants_1996-2023.parquet')
 TREATMENT_YEAR = 2018
@@ -295,15 +288,23 @@ def run_propensity_score_matching(data, treatment_year):
     
     matched_control = control.iloc[indices.flatten()]
     
-    # Get post-treatment outcomes - VECTORIZED (100x faster)
+    # Get post-treatment outcomes
     post_data = data[data['year'] >= treatment_year]
     
-    # Vectorized groupby operation instead of iterrows()
-    state_means = post_data.groupby('state')['carbon_intensity'].mean()
+    treated_outcomes = []
+    control_outcomes = []
     
-    # Get outcomes for treated and control states
-    treated_outcomes = state_means.reindex(treated['state']).dropna().values.tolist()
-    control_outcomes = state_means.reindex(matched_control['state']).dropna().values.tolist()
+    for _, treated_state in treated.iterrows():
+        state = treated_state['state']
+        outcome = post_data[post_data['state'] == state]['carbon_intensity'].mean()
+        if not np.isnan(outcome):
+            treated_outcomes.append(outcome)
+    
+    for _, control_state in matched_control.iterrows():
+        state = control_state['state']
+        outcome = post_data[post_data['state'] == state]['carbon_intensity'].mean()
+        if not np.isnan(outcome):
+            control_outcomes.append(outcome)
     
     if len(treated_outcomes) == 0 or len(control_outcomes) == 0:
         print("  ✗ Could not compute outcomes")
@@ -360,6 +361,8 @@ def visualize_results(data, did_results, sc_results, treatment_year, treated_sta
     ax1.set_ylabel('Carbon Intensity', fontweight='bold', fontsize=11)
     ax1.set_title('Difference-in-Differences', fontweight='bold', fontsize=12)
     ax1.legend(fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    
     # Plot 2: Event study
     ax2 = axes[0, 1]
     
@@ -374,6 +377,8 @@ def visualize_results(data, did_results, sc_results, treatment_year, treated_sta
     ax2.set_xlabel('Years Relative to Treatment', fontweight='bold', fontsize=11)
     ax2.set_ylabel('Treatment Effect', fontweight='bold', fontsize=11)
     ax2.set_title('Event Study', fontweight='bold', fontsize=12)
+    ax2.grid(True, alpha=0.3)
+    
     # Plot 3: Synthetic control (if available)
     ax3 = axes[1, 0]
     
@@ -396,6 +401,7 @@ def visualize_results(data, did_results, sc_results, treatment_year, treated_sta
         ax3.set_ylabel('Carbon Intensity', fontweight='bold', fontsize=11)
         ax3.set_title(f'Synthetic Control', fontweight='bold', fontsize=12)
         ax3.legend(fontsize=10)
+        ax3.grid(True, alpha=0.3)
     else:
         ax3.text(0.5, 0.5, 'Synthetic Control\nNot Available', 
                 ha='center', va='center', transform=ax3.transAxes, fontsize=12)
