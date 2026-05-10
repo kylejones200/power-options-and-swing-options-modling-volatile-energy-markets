@@ -336,110 +336,111 @@ def run_propensity_score_matching(data, treatment_year):
         'propensity_scores': state_features
     }
 
-def visualize_results(data, did_results, sc_results, treatment_year, treated_states):
+def visualize_results(data, did_results, sc_results, treatment_year, treated_states, plot: bool = False):
     """Create visualization of causal inference results"""
     logger.info("\nGenerating visualizations...")
     
-    fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+    if plot:
+        fig, axes = plt.subplots(2, 2, figsize=(16, 10))
     
     # Plot 1: DiD - Parallel trends
-    ax1 = axes[0, 0]
+        ax1 = axes[0, 0]
     
-    treated_trend = data[data['state'].isin(treated_states)].groupby('year')['carbon_intensity'].mean()
-    control_trend = data[~data['state'].isin(treated_states)].groupby('year')['carbon_intensity'].mean()
+        treated_trend = data[data['state'].isin(treated_states)].groupby('year')['carbon_intensity'].mean()
+        control_trend = data[~data['state'].isin(treated_states)].groupby('year')['carbon_intensity'].mean()
     
-    pre_mask = treated_trend.index < treatment_year
-    post_mask = treated_trend.index >= treatment_year
+        pre_mask = treated_trend.index < treatment_year
+        post_mask = treated_trend.index >= treatment_year
     
-    ax1.plot(treated_trend.index[pre_mask], treated_trend.values[pre_mask], 
-            'o-', linewidth=2, markersize=6, color='#e74c3c', label='Treated (pre)')
-    ax1.plot(treated_trend.index[post_mask], treated_trend.values[post_mask], 
-            'o-', linewidth=2, markersize=6, color='#e74c3c', label='Treated (post)')
+        ax1.plot(treated_trend.index[pre_mask], treated_trend.values[pre_mask], 
+                'o-', linewidth=2, markersize=6, color='#e74c3c', label='Treated (pre)')
+        ax1.plot(treated_trend.index[post_mask], treated_trend.values[post_mask], 
+                'o-', linewidth=2, markersize=6, color='#e74c3c', label='Treated (post)')
     
-    ax1.plot(control_trend.index[pre_mask], control_trend.values[pre_mask], 
-            's-', linewidth=2, markersize=6, color='#3498db', label='Control (pre)')
-    ax1.plot(control_trend.index[post_mask], control_trend.values[post_mask], 
-            's-', linewidth=2, markersize=6, color='#3498db', label='Control (post)')
+        ax1.plot(control_trend.index[pre_mask], control_trend.values[pre_mask], 
+                's-', linewidth=2, markersize=6, color='#3498db', label='Control (pre)')
+        ax1.plot(control_trend.index[post_mask], control_trend.values[post_mask], 
+                's-', linewidth=2, markersize=6, color='#3498db', label='Control (post)')
     
-    ax1.axvline(treatment_year - 0.5, color='black', linestyle='--', linewidth=2, alpha=0.5)
-    ax1.set_xlabel('Year', fontweight='bold', fontsize=11)
-    ax1.set_ylabel('Carbon Intensity', fontweight='bold', fontsize=11)
-    ax1.set_title('Difference-in-Differences', fontweight='bold', fontsize=12)
-    ax1.legend(fontsize=9)
+        ax1.axvline(treatment_year - 0.5, color='black', linestyle='--', linewidth=2, alpha=0.5)
+        ax1.set_xlabel('Year', fontweight='bold', fontsize=11)
+        ax1.set_ylabel('Carbon Intensity', fontweight='bold', fontsize=11)
+        ax1.set_title('Difference-in-Differences', fontweight='bold', fontsize=12)
+        ax1.legend(fontsize=9)
     # Plot 2: Event study
-    ax2 = axes[0, 1]
+        ax2 = axes[0, 1]
     
-    event_time = did_results['event_study']['time']
-    event_coefs = did_results['event_study']['coefficients']
+        event_time = did_results['event_study']['time']
+        event_coefs = did_results['event_study']['coefficients']
     
-    ax2.plot(event_time, event_coefs, 'o-', linewidth=2, markersize=7, color='#e74c3c')
-    ax2.axhline(0, color='black', linestyle='-', linewidth=1)
-    ax2.axvline(-0.5, color='gray', linestyle='--', linewidth=2, alpha=0.5)
-    ax2.fill_between(event_time, -0.02, 0.02, alpha=0.2, color='green')
+        ax2.plot(event_time, event_coefs, 'o-', linewidth=2, markersize=7, color='#e74c3c')
+        ax2.axhline(0, color='black', linestyle='-', linewidth=1)
+        ax2.axvline(-0.5, color='gray', linestyle='--', linewidth=2, alpha=0.5)
+        ax2.fill_between(event_time, -0.02, 0.02, alpha=0.2, color='green')
     
-    ax2.set_xlabel('Years Relative to Treatment', fontweight='bold', fontsize=11)
-    ax2.set_ylabel('Treatment Effect', fontweight='bold', fontsize=11)
-    ax2.set_title('Event Study', fontweight='bold', fontsize=12)
+        ax2.set_xlabel('Years Relative to Treatment', fontweight='bold', fontsize=11)
+        ax2.set_ylabel('Treatment Effect', fontweight='bold', fontsize=11)
+        ax2.set_title('Event Study', fontweight='bold', fontsize=12)
     # Plot 3: Synthetic control (if available)
-    ax3 = axes[1, 0]
+        ax3 = axes[1, 0]
     
-    if sc_results:
-        years_pre = range(treatment_year - len(sc_results['treated_pre']), treatment_year)
-        years_post = range(treatment_year, treatment_year + len(sc_results['treated_post']))
+        if sc_results:
+            years_pre = range(treatment_year - len(sc_results['treated_pre']), treatment_year)
+            years_post = range(treatment_year, treatment_year + len(sc_results['treated_post']))
         
-        ax3.plot(list(years_pre), sc_results['treated_pre'], 
-                'o-', linewidth=2, markersize=6, color='#e74c3c', label='Actual')
-        ax3.plot(list(years_post), sc_results['treated_post'], 
-                'o-', linewidth=2, markersize=6, color='#e74c3c')
+            ax3.plot(list(years_pre), sc_results['treated_pre'], 
+                    'o-', linewidth=2, markersize=6, color='#e74c3c', label='Actual')
+            ax3.plot(list(years_post), sc_results['treated_post'], 
+                    'o-', linewidth=2, markersize=6, color='#e74c3c')
         
-        ax3.plot(list(years_pre), sc_results['synthetic_pre'], 
-                's--', linewidth=2, markersize=5, color='gray', label='Synthetic', alpha=0.7)
-        ax3.plot(list(years_post), sc_results['synthetic_post'], 
-                's--', linewidth=2, markersize=5, color='gray', alpha=0.7)
+            ax3.plot(list(years_pre), sc_results['synthetic_pre'], 
+                    's--', linewidth=2, markersize=5, color='gray', label='Synthetic', alpha=0.7)
+            ax3.plot(list(years_post), sc_results['synthetic_post'], 
+                    's--', linewidth=2, markersize=5, color='gray', alpha=0.7)
         
-        ax3.axvline(treatment_year - 0.5, color='black', linestyle='--', linewidth=2, alpha=0.5)
-        ax3.set_xlabel('Year', fontweight='bold', fontsize=11)
-        ax3.set_ylabel('Carbon Intensity', fontweight='bold', fontsize=11)
-        ax3.set_title(f'Synthetic Control', fontweight='bold', fontsize=12)
-        ax3.legend(fontsize=10)
-    else:
-        ax3.text(0.5, 0.5, 'Synthetic Control\nNot Available', 
-                ha='center', va='center', transform=ax3.transAxes, fontsize=12)
-        ax3.axis('off')
+            ax3.axvline(treatment_year - 0.5, color='black', linestyle='--', linewidth=2, alpha=0.5)
+            ax3.set_xlabel('Year', fontweight='bold', fontsize=11)
+            ax3.set_ylabel('Carbon Intensity', fontweight='bold', fontsize=11)
+            ax3.set_title(f'Synthetic Control', fontweight='bold', fontsize=12)
+            ax3.legend(fontsize=10)
+        else:
+            ax3.text(0.5, 0.5, 'Synthetic Control\nNot Available', 
+                    ha='center', va='center', transform=ax3.transAxes, fontsize=12)
+            ax3.axis('off')
     
     # Plot 4: Summary
-    ax4 = axes[1, 1]
-    ax4.axis('off')
+        ax4 = axes[1, 1]
+        ax4.axis('off')
     
-    summary_text = f"""
-CAUSAL INFERENCE SUMMARY
+        summary_text = f"""
+    CAUSAL INFERENCE SUMMARY
 
-Treatment Year: {treatment_year}
-Treated States: {', '.join(treated_states)}
+    Treatment Year: {treatment_year}
+    Treated States: {', '.join(treated_states)}
 
-DiD Estimate:
-  Effect: {did_results['treatment_effect']:.6f}
-  P-value: {did_results['pvalue']:.4f}
-  Significant: {'Yes' if did_results['pvalue'] < 0.05 else 'No'}
+    DiD Estimate:
+      Effect: {did_results['treatment_effect']:.6f}
+      P-value: {did_results['pvalue']:.4f}
+      Significant: {'Yes' if did_results['pvalue'] < 0.05 else 'No'}
 
-Synthetic Control:
-  {"Effect: " + f"{sc_results['treatment_effect']:.6f}" if sc_results else "Not computed"}
-  {"Pre-fit RMSE: " + f"{sc_results['pre_rmse']:.6f}" if sc_results else ""}
+    Synthetic Control:
+      {"Effect: " + f"{sc_results['treatment_effect']:.6f}" if sc_results else "Not computed"}
+      {"Pre-fit RMSE: " + f"{sc_results['pre_rmse']:.6f}" if sc_results else ""}
 
-Interpretation:
-  {"Policy reduced emissions" if did_results['treatment_effect'] < 0 else "Policy increased emissions"}
-  {"significantly" if did_results['pvalue'] < 0.05 else "(not significant)"}
-    """
+    Interpretation:
+      {"Policy reduced emissions" if did_results['treatment_effect'] < 0 else "Policy increased emissions"}
+      {"significantly" if did_results['pvalue'] < 0.05 else "(not significant)"}
+        """
     
-    ax4.text(0.1, 0.95, summary_text, transform=ax4.transAxes,
-            fontsize=10, verticalalignment='top', fontfamily='monospace',
-            bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
+        ax4.text(0.1, 0.95, summary_text, transform=ax4.transAxes,
+                fontsize=10, verticalalignment='top', fontfamily='monospace',
+                bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
     
-    plt.suptitle('Causal Inference: Policy Impact Evaluation', 
-                fontsize=16, fontweight='bold', y=0.995)
-    plt.tight_layout()
+        plt.suptitle('Causal Inference: Policy Impact Evaluation', 
+                    fontsize=16, fontweight='bold', y=0.995)
+        plt.tight_layout()
     
-    plt.savefig('04_causal_inference_results.png', dpi=300, bbox_inches='tight')
+        plt.savefig('04_causal_inference_results.png', dpi=300, bbox_inches='tight')
     logger.info("  Saved: 04_causal_inference_results.png")
 
 def main():
