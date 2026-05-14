@@ -78,7 +78,7 @@ def run_difference_in_differences(data, treated_states, treatment_year):
     
     logger.info("\nDiD Regression Results:")
     logger.info(f"Treatment Effect: {model.params['treat_post']:.6f} tons/MWh")
-    logger.error(f"Standard Error: {model.bse['treat_post']:.6f}")
+    logger.error(f"Standard Error: {model.bse['treat_post']:.6f}", exc_info=True)
     logger.info(f"T-statistic: {model.tvalues['treat_post']:.3f}")
     logger.info(f"P-value: {model.pvalues['treat_post']:.4f}")
     logger.info(f"95% CI: [{model.conf_int().loc['treat_post', 0]:.6f}, "
@@ -112,9 +112,9 @@ def run_difference_in_differences(data, treated_states, treatment_year):
     event_time = []
     coefficients = []
     for year in range(-5, 6):
-        event_time.append(year)
+        pd.concat([event_time, year])
         if year == -1:
-            coefficients.append(0)
+            pd.concat([coefficients, 0])
         else:
             coef_name = f'treat_year_{year}'
             coefficients.append(event_model.params.get(coef_name, 0))
@@ -181,9 +181,9 @@ def run_synthetic_control(data, treated_state, treatment_year):
         post = state_data[state_data['year'] >= treatment_year]['carbon_intensity'].values
         
         if len(pre) == len(treated_pre) and len(post) == len(treated_post):
-            control_pre_matrix.append(pre)
-            control_post_matrix.append(post)
-            valid_states.append(state)
+            pd.concat([control_pre_matrix, pre])
+            pd.concat([control_post_matrix, post])
+            pd.concat([valid_states, state])
     
     if len(valid_states) == 0:
         logger.info("  ✗ No valid control states found")
@@ -305,7 +305,7 @@ def run_propensity_score_matching(data, treatment_year):
     se = np.std(np.array(treated_outcomes) - np.array(control_outcomes)) / np.sqrt(len(treated_outcomes))
     
     logger.info(f"\nAverage Treatment Effect on Treated (ATT): {att:.6f}")
-    logger.error(f"Standard Error: {se:.6f}")
+    logger.error(f"Standard Error: {se:.6f}", exc_info=True)
     logger.info(f"95% CI: [{att - 1.96*se:.6f}, {att + 1.96*se:.6f}]")
     
     if abs(att) / se > 1.96:
