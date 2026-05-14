@@ -23,12 +23,7 @@ from scipy.optimize import minimize
 import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 
-# Import Tufte plotting utilities
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from tda_utils import setup_tufte_plot, TufteColors
-
-
 # Configuration
 DATA_PATH = Path('../../egrid_all_plants_1996-2023.parquet')
 TREATMENT_YEAR = 2018
