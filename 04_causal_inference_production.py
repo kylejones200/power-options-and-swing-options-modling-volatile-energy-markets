@@ -62,9 +62,7 @@ def run_difference_in_differences(data, treated_states, treatment_year):
     """
     Estimate treatment effect using Difference-in-Differences
     """
-    logger.info("\n" + "=" * 80)
-    logger.info("[1/3] DIFFERENCE-IN-DIFFERENCES")
-    logger.info("=" * 80)
+    logger.info("=== [1/3] DIFFERENCE-IN-DIFFERENCES ===")
     
     # Create treatment variables
     df = data.copy()
@@ -87,7 +85,6 @@ def run_difference_in_differences(data, treated_states, treatment_year):
                                           cov_kwds={'groups': df['state']})
     
     logger.info("\nDiD Regression Results:")
-    logger.info("-" * 80)
     logger.info(f"Treatment Effect: {model.params['treat_post']:.6f} tons/MWh")
     logger.error(f"Standard Error: {model.bse['treat_post']:.6f}")
     logger.info(f"T-statistic: {model.tvalues['treat_post']:.3f}")
@@ -170,9 +167,7 @@ def run_synthetic_control(data, treated_state, treatment_year):
     """
     Estimate treatment effect using Synthetic Control Method
     """
-    logger.info("\n" + "=" * 80)
-    logger.info(f"[2/3] SYNTHETIC CONTROL (Treated: {treated_state})")
-    logger.info("=" * 80)
+    logger.info("=== [2/3] SYNTHETIC CONTROL (Treated: {treated_state}) ===")
     
     # Prepare data
     treated_data = data[data['state'] == treated_state].sort_values('year')
@@ -244,9 +239,7 @@ def run_propensity_score_matching(data, treatment_year):
     Estimate treatment effect using Propensity Score Matching
     Note: This creates a hypothetical plant-level treatment for demonstration
     """
-    logger.info("\n" + "=" * 80)
-    logger.info("[3/3] PROPENSITY SCORE MATCHING")
-    logger.info("=" * 80)
+    logger.info("=== [3/3] PROPENSITY SCORE MATCHING ===")
     
     logger.info("  Note: Using simplified state-level demo (real PSM requires plant-level data)")
     
@@ -445,9 +438,7 @@ def visualize_results(data, did_results, sc_results, treatment_year, treated_sta
 
 def main():
     """Main execution"""
-    logger.info("=" * 80)
     logger.info("CAUSAL INFERENCE - PRODUCTION RUN")
-    logger.info("=" * 80)
     
     # Load data
     data = load_state_level_data()
@@ -464,9 +455,7 @@ def main():
     # Visualize
     visualize_results(data, did_results, sc_results, TREATMENT_YEAR, TREATED_STATES)
     
-    logger.info("\n" + "=" * 80)
-    logger.info("✓ Complete!")
-    logger.info("=" * 80)
+    logger.info("=== ✓ Complete! ===")
     
     return {
         'did': did_results,
