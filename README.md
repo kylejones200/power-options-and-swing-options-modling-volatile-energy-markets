@@ -1,7 +1,7 @@
 # Power Options and Swing Options Modling Volatile Energy Markets
 
-**Published:** 2025-10-06
-**Medium:** [https://medium.com/@kyle-t-jones/power-options-and-swing-options-modling-volatile-energy-markets-383f332f132b](https://medium.com/@kyle-t-jones/power-options-and-swing-options-modling-volatile-energy-markets-383f332f132b)
+Published: 2025-10-06
+Medium: [https://medium.com/@kyle-t-jones/power-options-and-swing-options-modling-volatile-energy-markets-383f332f132b](https://medium.com/@kyle-t-jones/power-options-and-swing-options-modling-volatile-energy-markets-383f332f132b)
 
 ## About
 

@@ -12,10 +12,10 @@ Power markets exhibit extreme volatility compared to other commodities. Oil pric
 
 Traditional forward contracts lock in prices, eliminating both upside and downside. Options provide asymmetric payoffs—participate in favorable moves while limiting losses during adverse moves. For power traders, this asymmetry is invaluable:
 
-- **Generators**: Buy put options to protect against low prices without capping upside
-- **Load-Serving Entities**: Buy call options to cap purchase costs while benefiting from low prices
-- **Speculators**: Sell options to collect premiums, profiting from volatility itself
-- **Asset Managers**: Use options to enhance returns through structured products
+- Generators: Buy put options to protect against low prices without capping upside
+- Load-Serving Entities: Buy call options to cap purchase costs while benefiting from low prices
+- Speculators: Sell options to collect premiums, profiting from volatility itself
+- Asset Managers: Use options to enhance returns through structured products
 
 ![Power Options Analysis](04_power_options_main.png)
 
@@ -25,21 +25,21 @@ Traditional forward contracts lock in prices, eliminating both upside and downsi
 
 Power options come in two fundamental varieties, each with distinct pricing and exercise characteristics.
 
-**European options** can only be exercised at expiration. The Black-Scholes framework adapted for power markets calculates option value by modeling price evolution with geometric Brownian motion, adjusting for power market features like mean reversion and seasonality. Volatility in power markets typically ranges from 50-200% annualized—far exceeding financial markets' 15-30% typical levels.
+European options can only be exercised at expiration. The Black-Scholes framework adapted for power markets calculates option value by modeling price evolution with geometric Brownian motion, adjusting for power market features like mean reversion and seasonality. Volatility in power markets typically ranges from 50-200% annualized—far exceeding financial markets' 15-30% typical levels.
 
 The valuation framework computes option value components: intrinsic value (immediate exercise value), time value (premium for future price movements), and Greeks (sensitivity measures for risk management). For a call option with spot price $85/MWh, strike $100/MWh, 30 days to expiry, and 75% volatility, the option might price at $8-12/MWh despite being $15 out-of-the-money. High volatility creates substantial time value—prices could easily spike above $100/MWh before expiration.
 
-**American options** add early exercise rights. For puts, this matters significantly—when spot prices crash below strike, immediate exercise captures intrinsic value plus avoids further time decay. The American put premium reflects this early exercise optionality. For calls, early exercise is rarely optimal (except in specific dividend-like scenarios irrelevant to power markets), so American and European call prices converge.
+American options add early exercise rights. For puts, this matters significantly—when spot prices crash below strike, immediate exercise captures intrinsic value plus avoids further time decay. The American put premium reflects this early exercise optionality. For calls, early exercise is rarely optimal (except in specific dividend-like scenarios irrelevant to power markets), so American and European call prices converge.
 
-**Greeks quantify risk exposures:**
+Greeks quantify risk exposures:
 
-**Delta** measures price sensitivity—how much the option value changes per $1 spot price move. Calls have positive delta (0 to 1), puts have negative delta (-1 to 0). Delta also approximates the probability of finishing in-the-money.
+Delta measures price sensitivity—how much the option value changes per $1 spot price move. Calls have positive delta (0 to 1), puts have negative delta (-1 to 0). Delta also approximates the probability of finishing in-the-money.
 
-**Gamma** measures delta sensitivity—how fast delta changes as spot price moves. High gamma means delta changes rapidly, creating nonlinear P&L profiles. Options near expiration and near-the-money exhibit highest gamma.
+Gamma measures delta sensitivity—how fast delta changes as spot price moves. High gamma means delta changes rapidly, creating nonlinear P&L profiles. Options near expiration and near-the-money exhibit highest gamma.
 
-**Theta** quantifies time decay—the daily erosion in option value as expiration approaches. Options lose value as time passes (assuming price doesn't move), with decay accelerating as expiration nears.
+Theta quantifies time decay—the daily erosion in option value as expiration approaches. Options lose value as time passes (assuming price doesn't move), with decay accelerating as expiration nears.
 
-**Vega** measures volatility sensitivity—how much option value changes per 1% volatility change. Long options benefit from volatility increases; short options suffer.
+Vega measures volatility sensitivity—how much option value changes per 1% volatility change. Long options benefit from volatility increases; short options suffer.
 
 Example output for an $85 spot, $100 strike call with 30 days and 75% vol might show: option value $8.45, intrinsic $0, time value $8.45, delta 0.35, gamma 0.012, theta -$0.25/day, vega $0.38 per vol%. This quantifies how the position responds to every market shift.
 
@@ -51,9 +51,9 @@ Example output for an $85 spot, $100 strike call with 30 days and 75% vol might 
 
 Swing options—also called take-or-pay options—grant the holder flexibility to vary delivery quantities within limits over multiple periods. These instruments are particularly valuable for managing load uncertainty and generation variability.
 
-**Structure:** A swing option specifies a base quantity, a swing range (±MW adjustment allowed), and a limited number of exercise rights (times the holder can swing up or down from base). For example: 100 MW base, ±30 MW swing range, 10 exercise rights over a month.
+Structure: A swing option specifies a base quantity, a swing range (±MW adjustment allowed), and a limited number of exercise rights (times the holder can swing up or down from base). For example: 100 MW base, ±30 MW swing range, 10 exercise rights over a month.
 
-**Valuation** uses dynamic programming to solve the optimal exercise strategy. At each period, the holder chooses: take base quantity (no exercise), swing up (use exercise right to increase quantity), or swing down (use exercise right to decrease quantity). The algorithm works backward from final period, computing optimal value at each state (period, exercises remaining).
+Valuation uses dynamic programming to solve the optimal exercise strategy. At each period, the holder chooses: take base quantity (no exercise), swing up (use exercise right to increase quantity), or swing down (use exercise right to decrease quantity). The algorithm works backward from final period, computing optimal value at each state (period, exercises remaining).
 
 The key insight: swing options capture flexibility value. A static contract delivers fixed quantities regardless of price movements. A swing option allows the holder to increase quantities when prices favor increased delivery and decrease quantities when prices make delivery unattractive. This optionality has quantifiable economic value beyond the intrinsic value of base quantities.
 
@@ -69,17 +69,17 @@ Swing options typically trade at 20-40% premiums above plain vanilla options bec
 
 Power markets exhibit pronounced volatility smiles—implied volatility varies systematically by strike price, revealing market participants' assessment of tail risk and price spike probability.
 
-**Implied volatility** is the volatility level that, when input to an option pricing model, reproduces the observed market price. Extracting implied volatility from market prices reveals traders' collective view of future price uncertainty—often different from historical volatility.
+Implied volatility is the volatility level that, when input to an option pricing model, reproduces the observed market price. Extracting implied volatility from market prices reveals traders' collective view of future price uncertainty—often different from historical volatility.
 
-**The smile pattern:** In power markets, deep out-of-the-money options show 2-3× higher implied volatility than at-the-money options. For example, at-the-money calls might trade at 75% implied vol, while $20 out-of-the-money calls trade at 150% implied vol. This pattern reflects jump risk—the market prices significant probability of extreme price spikes that Black-Scholes' log-normal framework underestimates.
+The smile pattern: In power markets, deep out-of-the-money options show 2-3× higher implied volatility than at-the-money options. For example, at-the-money calls might trade at 75% implied vol, while $20 out-of-the-money calls trade at 150% implied vol. This pattern reflects jump risk—the market prices significant probability of extreme price spikes that Black-Scholes' log-normal framework underestimates.
 
-**Smile characteristics:**
+Smile characteristics:
 
-**ATM volatility** (at-the-money) represents the baseline volatility level for options near current spot price. This typically ranges 50-100% in normal power market conditions.
+ATM volatility (at-the-money) represents the baseline volatility level for options near current spot price. This typically ranges 50-100% in normal power market conditions.
 
-**Smile convexity** measures how steeply implied volatility increases as strikes move away from spot. High convexity indicates strong skew—the market prices substantial tail risk in both directions.
+Smile convexity measures how steeply implied volatility increases as strikes move away from spot. High convexity indicates strong skew—the market prices substantial tail risk in both directions.
 
-**Skew** specifically refers to the volatility differential between out-of-the-money puts and ATM strikes. Positive skew (puts more expensive) indicates fear of downside moves; negative skew (calls more expensive) indicates fear of upside spikes. Power markets typically show negative skew—upside spike risk exceeds downside crash risk due to supply constraints and inelastic demand.
+Skew specifically refers to the volatility differential between out-of-the-money puts and ATM strikes. Positive skew (puts more expensive) indicates fear of downside moves; negative skew (calls more expensive) indicates fear of upside spikes. Power markets typically show negative skew—upside spike risk exceeds downside crash risk due to supply constraints and inelastic demand.
 
 Example smile analysis for spot $85/MWh with strikes from $60 to $120 might show: ATM vol 75%, $60 strike (29% OTM put) at 95% vol, $120 strike (41% OTM call) at 140% vol. The 65-point spread between deep OTM call and ATM quantifies how much more the market fears spike risk versus normal price evolution.
 
@@ -93,15 +93,15 @@ Trading the smile: When implied volatility exceeds historical volatility by 15+ 
 
 Professional option traders don't trade single options—they construct portfolios optimized for specific risk/return profiles by combining multiple strikes, expirations, and option types.
 
-**Portfolio construction principles:**
+Portfolio construction principles:
 
-**Spread strategies** combine options to create tailored payoffs. Bull call spreads (long lower strike call, short higher strike call) limit both upside and downside—ideal when moderately bullish but wanting to reduce premium costs. Bear put spreads, butterflies, condors, and straddles each create distinct P&L profiles matching specific market views.
+Spread strategies combine options to create tailored payoffs. Bull call spreads (long lower strike call, short higher strike call) limit both upside and downside—ideal when moderately bullish but wanting to reduce premium costs. Bear put spreads, butterflies, condors, and straddles each create distinct P&L profiles matching specific market views.
 
-**Greeks management** ensures portfolio risk remains within limits. Aggregate portfolio delta measures directional exposure—sum of individual position deltas. Delta-neutral portfolios profit from volatility regardless of price direction. Vega exposure quantifies volatility sensitivity—long vega profits when vol rises, short vega profits when vol falls. Theta exposure reveals time decay impact—positive theta collects premium decay, negative theta pays it.
+Greeks management ensures portfolio risk remains within limits. Aggregate portfolio delta measures directional exposure—sum of individual position deltas. Delta-neutral portfolios profit from volatility regardless of price direction. Vega exposure quantifies volatility sensitivity—long vega profits when vol rises, short vega profits when vol falls. Theta exposure reveals time decay impact—positive theta collects premium decay, negative theta pays it.
 
-**Risk limits** typically specify maximum delta (directional risk), maximum vega (volatility risk), and maximum gamma (convexity risk). A $100M option portfolio might limit delta to ±$5M, vega to ±$200k per vol%, and gamma to ±$50k per $1 move.
+Risk limits typically specify maximum delta (directional risk), maximum vega (volatility risk), and maximum gamma (convexity risk). A $100M option portfolio might limit delta to ±$5M, vega to ±$200k per vol%, and gamma to ±$50k per $1 move.
 
-**P&L simulation** evaluates portfolio performance across price scenarios. By revaluing all positions at prices ranging 50%-150% of spot, traders visualize maximum profit, maximum loss, breakeven points, and sensitivity to market moves. This scenario analysis reveals whether the portfolio actually delivers the intended risk/return profile.
+P&L simulation evaluates portfolio performance across price scenarios. By revaluing all positions at prices ranging 50%-150% of spot, traders visualize maximum profit, maximum loss, breakeven points, and sensitivity to market moves. This scenario analysis reveals whether the portfolio actually delivers the intended risk/return profile.
 
 Example bull call spread: Long 100 contracts of $85 strike call, short 100 contracts of $100 strike call, both expiring in 30 days with 75% vol. Portfolio value might be -$630,000 (net premium paid), max profit $1.37M (if spot reaches $100+), max loss -$630k (if spot stays below $85). Portfolio delta +28, gamma +0.8, vega +$1,850/vol%, theta -$180/day. The positive delta and vega indicate bullish directional bias with volatility tailwind, while negative theta shows time decay cost.
 
@@ -113,17 +113,17 @@ Example bull call spread: Long 100 contracts of $85 strike call, short 100 contr
 
 Integrating option analytics into live trading decisions enables systematic opportunity identification and risk management.
 
-**Signal generation logic:**
+Signal generation logic:
 
-**Volatility arbitrage signals** trigger when implied volatility deviates significantly from historical volatility. Implied vol 15+ points above historical suggests selling straddles (sell ATM call + put) to collect overpriced premium. Implied vol 10+ points below historical suggests buying straddles to capture cheap volatility exposure before inevitable spike.
+Volatility arbitrage signals trigger when implied volatility deviates significantly from historical volatility. Implied vol 15+ points above historical suggests selling straddles (sell ATM call + put) to collect overpriced premium. Implied vol 10+ points below historical suggests buying straddles to capture cheap volatility exposure before inevitable spike.
 
-**Directional signals** trigger on price momentum. When 30-day forward prices exceed spot by 10%+, strong bullish momentum suggests buying calls to participate with leverage. Bearish momentum (forwards 10%+ below spot) triggers put buying recommendations.
+Directional signals trigger on price momentum. When 30-day forward prices exceed spot by 10%+, strong bullish momentum suggests buying calls to participate with leverage. Bearish momentum (forwards 10%+ below spot) triggers put buying recommendations.
 
-**Calendar spread signals** exploit time decay differentials in low volatility environments. Sell near-term options (high theta decay) and buy far-term options (lower theta decay) with matching strikes, profiting as near-term options decay faster.
+Calendar spread signals exploit time decay differentials in low volatility environments. Sell near-term options (high theta decay) and buy far-term options (lower theta decay) with matching strikes, profiting as near-term options decay faster.
 
-**Hedge signals** trigger when portfolio risk metrics exceed limits. If 95% Value-at-Risk exceeds position limits, the system recommends protective put purchases to reduce tail risk exposure, accepting the hedging cost to maintain risk discipline.
+Hedge signals trigger when portfolio risk metrics exceed limits. If 95% Value-at-Risk exceeds position limits, the system recommends protective put purchases to reduce tail risk exposure, accepting the hedging cost to maintain risk discipline.
 
-**Signal ranking** prioritizes by confidence level and expected return. HIGH confidence signals with expected returns >10% receive immediate attention. MEDIUM confidence signals require additional analysis. CRITICAL signals (like hedge requirements) override return considerations.
+Signal ranking prioritizes by confidence level and expected return. HIGH confidence signals with expected returns >10% receive immediate attention. MEDIUM confidence signals require additional analysis. CRITICAL signals (like hedge requirements) override return considerations.
 
 Example signal generation with spot $92.50, historical vol 65%, implied vol 85%, 30-day forwards $98.20, and VaR exposure $2.5M: System generates SELL_VOLATILITY signal (high confidence, 10% expected return) due to 20-point vol differential, plus BUY_CALLS signal (high confidence, 12.4% expected return) due to 6.2% bullish forward momentum. The automated system quantifies edge in each opportunity.
 
@@ -135,15 +135,15 @@ Example signal generation with spot $92.50, historical vol 65%, implied vol 85%,
 
 Mastering power options transforms risk management and creates profit opportunities unavailable through physical trading:
 
-**Volatility Is Your Friend**: Power's extreme volatility makes options valuable. Even deep out-of-money strikes trade at significant premiums because prices can move dramatically.
+Volatility Is Your Friend: Power's extreme volatility makes options valuable. Even deep out-of-money strikes trade at significant premiums because prices can move dramatically.
 
-**Greeks Guide Risk Management**: Delta, gamma, vega, and theta reveal how positions respond to market changes. Managing Greeks is more important than managing notional exposure—a $10M notional position might have lower risk than a $2M high-gamma position.
+Greeks Guide Risk Management: Delta, gamma, vega, and theta reveal how positions respond to market changes. Managing Greeks is more important than managing notional exposure—a $10M notional position might have lower risk than a $2M high-gamma position.
 
-**Swing Options Monetize Flexibility**: Operational flexibility has quantifiable value. Swing options capture this value better than static forward contracts by allowing quantity adjustments as conditions evolve.
+Swing Options Monetize Flexibility: Operational flexibility has quantifiable value. Swing options capture this value better than static forward contracts by allowing quantity adjustments as conditions evolve.
 
-**Volatility Smile Reflects Jump Risk**: Higher implied volatility at extreme strikes shows the market prices in tail risk—use this information to position accordingly. When smile convexity seems excessive, sell far OTM options; when convexity seems too flat, buy far OTM protection.
+Volatility Smile Reflects Jump Risk: Higher implied volatility at extreme strikes shows the market prices in tail risk—use this information to position accordingly. When smile convexity seems excessive, sell far OTM options; when convexity seems too flat, buy far OTM protection.
 
-**Portfolios Beat Single Options**: Combining multiple options creates tailored payoff profiles matching specific risk/return objectives better than any single instrument. Spreads, condors, butterflies, and straddles each serve distinct purposes.
+Portfolios Beat Single Options: Combining multiple options creates tailored payoff profiles matching specific risk/return objectives better than any single instrument. Spreads, condors, butterflies, and straddles each serve distinct purposes.
 
 ---
 
@@ -151,13 +151,13 @@ Mastering power options transforms risk management and creates profit opportunit
 
 Deploy power options trading systematically:
 
-1. **Pricing Infrastructure**: Implement Black-Scholes with power market adjustments (mean reversion, seasonality, jump diffusion)
-2. **Greeks Calculation**: Build real-time Greeks monitoring for all positions, aggregating to portfolio level
-3. **Volatility Surface**: Construct and maintain implied volatility surface from market prices, updating continuously
-4. **Signal Generation**: Deploy automated opportunity identification based on vol arbitrage, directional momentum, and risk management needs
-5. **Risk Management**: Set Greeks limits (delta, gamma, vega) and monitor continuously against thresholds
-6. **Strategy Backtesting**: Test option strategies against historical price data to validate expected returns
-7. **Execution Platform**: Integrate with broker APIs for order routing, ensuring low latency and reliable fills
+1. Pricing Infrastructure: Implement Black-Scholes with power market adjustments (mean reversion, seasonality, jump diffusion)
+2. Greeks Calculation: Build real-time Greeks monitoring for all positions, aggregating to portfolio level
+3. Volatility Surface: Construct and maintain implied volatility surface from market prices, updating continuously
+4. Signal Generation: Deploy automated opportunity identification based on vol arbitrage, directional momentum, and risk management needs
+5. Risk Management: Set Greeks limits (delta, gamma, vega) and monitor continuously against thresholds
+6. Strategy Backtesting: Test option strategies against historical price data to validate expected returns
+7. Execution Platform: Integrate with broker APIs for order routing, ensuring low latency and reliable fills
 
 Professional options trading requires both analytical sophistication and operational discipline. While forward contracts lock in certainty, options create flexibility—flexibility that generates alpha when markets move in your favor and limits losses when they don't.
 
