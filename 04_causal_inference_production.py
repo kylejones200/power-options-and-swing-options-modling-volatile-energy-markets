@@ -21,7 +21,6 @@ from scipy.optimize import minimize
 import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 
-import sys
 # Configuration
 DATA_PATH = Path('../../egrid_all_plants_1996-2023.parquet')
 TREATMENT_YEAR = 2018
@@ -386,7 +385,7 @@ def visualize_results(data, did_results, sc_results, treatment_year, treated_sta
             ax3.axvline(treatment_year - 0.5, color='black', linestyle='--', linewidth=2, alpha=0.5)
             ax3.set_xlabel('Year', fontweight='bold', fontsize=11)
             ax3.set_ylabel('Carbon Intensity', fontweight='bold', fontsize=11)
-            ax3.set_title(f'Synthetic Control', fontweight='bold', fontsize=12)
+            ax3.set_title('Synthetic Control', fontweight='bold', fontsize=12)
             ax3.legend(fontsize=10)
         else:
             ax3.text(0.5, 0.5, 'Synthetic Control\nNot Available', 
@@ -419,7 +418,7 @@ def visualize_results(data, did_results, sc_results, treatment_year, treated_sta
     
         ax4.text(0.1, 0.95, summary_text, transform=ax4.transAxes,
                 fontsize=10, verticalalignment='top', fontfamily='monospace',
-                bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
+                bbox={'boxstyle': 'round', 'facecolor': 'lightblue', 'alpha': 0.3})
     
         plt.suptitle('Causal Inference: Policy Impact Evaluation', 
                     fontsize=16, fontweight='bold', y=0.995)
