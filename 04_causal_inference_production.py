@@ -131,9 +131,9 @@ def run_difference_in_differences(data, treated_states, treatment_year):
     event_time = []
     coefficients = []
     for year in range(-5, 6):
-        pd.concat([event_time, year])
+        event_time.append(year)
         if year == -1:
-            pd.concat([coefficients, 0])
+            coefficients.append(0)
         else:
             coef_name = f"treat_year_{year}"
             coefficients.append(event_model.params.get(coef_name, 0))
@@ -211,9 +211,9 @@ def run_synthetic_control(data, treated_state, treatment_year):
         ].values
 
         if len(pre) == len(treated_pre) and len(post) == len(treated_post):
-            pd.concat([control_pre_matrix, pre])
-            pd.concat([control_post_matrix, post])
-            pd.concat([valid_states, state])
+            control_pre_matrix.append(pre)
+            control_post_matrix.append(post)
+            valid_states.append(state)
 
     if len(valid_states) == 0:
         logger.info("  ✗ No valid control states found")
