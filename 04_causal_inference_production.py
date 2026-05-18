@@ -7,20 +7,18 @@ Difference-in-Differences, Synthetic Control, and Propensity Score Matching
 import logging
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
-import matplotlib.pyplot as plt
 import statsmodels.formula.api as smf
 from scipy.optimize import minimize
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
 
 # Configuration
 DATA_PATH = Path("../../egrid_all_plants_1996-2023.parquet")
@@ -33,12 +31,8 @@ def load_state_level_data():
     """Aggregate data to state-year level"""
     logger.info("Loading and aggregating data to state level...")
     plants = pd.read_parquet(DATA_PATH)
-
     # Get state column
-    state_col = [
-        c for c in plants.columns if "state" in c.lower() and "abbr" in c.lower()
-    ][0]
-
+    state_col = [c for c in plants.columns if "state" in c.lower() and "abbr" in c.lower()][0]
     state_data = (
         plants.groupby(["data_year", state_col])
         .agg(
@@ -53,13 +47,10 @@ def load_state_level_data():
         )
         .reset_index()
     )
-
     state_data.columns = ["year", "state", "generation", "co2"]
     state_data["carbon_intensity"] = state_data["co2"] / state_data["generation"]
-
     # Remove any infinite or nan values
     state_data = state_data.replace([np.inf, -np.inf], np.nan).dropna()
-
     logger.info(f"Loaded {len(state_data):,} state-year observations")
     return state_data
 
@@ -69,13 +60,11 @@ def run_difference_in_differences(data, treated_states, treatment_year):
     Estimate treatment effect using Difference-in-Differences
     """
     logger.info("=== [1/3] DIFFERENCE-IN-DIFFERENCES ===")
-
     # Create treatment variables
     df = data.copy()
     df["treated"] = df["state"].isin(treated_states).astype(int)
     df["post"] = (df["year"] >= treatment_year).astype(int)
     df["treat_post"] = df["treated"] * df["post"]
-
     # Check parallel trends (pre-treatment)
     pre_data = df[df["year"] < treatment_year]
     logger.info("\nPre-treatment trends:")
@@ -87,10 +76,7 @@ def run_difference_in_differences(data, treated_states, treatment_year):
 
     # DiD regression with clustered standard errors
     formula = "carbon_intensity ~ treated + post + treat_post"
-    model = smf.ols(formula, data=df).fit(
-        cov_type="cluster", cov_kwds={"groups": df["state"]}
-    )
-
+    model = smf.ols(formula, data=df).fit(cov_type="cluster", cov_kwds={"groups": df["state"]})
     logger.info("\nDiD Regression Results:")
     logger.info(f"Treatment Effect: {model.params['treat_post']:.6f} tons/MWh")
     logger.error(f"Standard Error: {model.bse['treat_post']:.6f}", exc_info=True)
@@ -100,33 +86,27 @@ def run_difference_in_differences(data, treated_states, treatment_year):
         f"95% CI: [{model.conf_int().loc['treat_post', 0]:.6f}, "
         f"{model.conf_int().loc['treat_post', 1]:.6f}]"
     )
-
     if model.pvalues["treat_post"] < 0.05:
         direction = "reduced" if model.params["treat_post"] < 0 else "increased"
         pct = abs(model.params["treat_post"]) / df["carbon_intensity"].mean() * 100
-        logger.info(
-            f"\n✓ Policy significantly {direction} carbon intensity by {pct:.1f}%"
-        )
+        logger.info(f"\n✓ Policy significantly {direction} carbon intensity by {pct:.1f}%")
     else:
         logger.info("\n✗ No significant policy effect detected")
 
     # Event study
     logger.info("\nEvent Study (dynamic effects):")
     df["years_to_treatment"] = df["year"] - treatment_year
-
     # Create year dummies (omit -1 as reference)
     for year in range(-5, 6):
         if year != -1:
-            df[f"treat_year_{year}"] = (
-                df["treated"] * (df["years_to_treatment"] == year)
-            ).astype(int)
+            df[f"treat_year_{year}"] = (df["treated"] * (df["years_to_treatment"] == year)).astype(
+                int
+            )
 
     event_formula = "carbon_intensity ~ treated + " + " + ".join(
         [f"treat_year_{y}" for y in range(-5, 6) if y != -1]
     )
-
     event_model = smf.ols(event_formula, data=df).fit(cov_type="HC1")
-
     # Extract coefficients
     event_time = []
     coefficients = []
@@ -166,7 +146,6 @@ def synthetic_control_weights(treated_pre, control_pre):
     constraints = {"type": "eq", "fun": lambda w: np.sum(w) - 1}
     bounds = [(0, 1) for _ in range(n_controls)]
     initial = np.ones(n_controls) / n_controls
-
     result = minimize(
         objective,
         initial,
@@ -175,7 +154,6 @@ def synthetic_control_weights(treated_pre, control_pre):
         constraints=constraints,
         options={"maxiter": 1000},
     )
-
     return result.x if result.success else initial
 
 
@@ -184,32 +162,21 @@ def run_synthetic_control(data, treated_state, treatment_year):
     Estimate treatment effect using Synthetic Control Method
     """
     logger.info("=== [2/3] SYNTHETIC CONTROL (Treated: {treated_state}) ===")
-
     # Prepare data
     treated_data = data[data["state"] == treated_state].sort_values("year")
     control_data = data[data["state"] != treated_state].sort_values(["state", "year"])
-
     # Get pre/post periods
-    treated_pre = treated_data[treated_data["year"] < treatment_year][
-        "carbon_intensity"
-    ].values
-    treated_post = treated_data[treated_data["year"] >= treatment_year][
-        "carbon_intensity"
-    ].values
-
+    treated_pre = treated_data[treated_data["year"] < treatment_year]["carbon_intensity"].values
+    treated_post = treated_data[treated_data["year"] >= treatment_year]["carbon_intensity"].values
     # Build control matrices
     control_states = control_data["state"].unique()
     control_pre_matrix = []
     control_post_matrix = []
     valid_states = []
-
     for state in control_states:
         state_data = control_data[control_data["state"] == state]
         pre = state_data[state_data["year"] < treatment_year]["carbon_intensity"].values
-        post = state_data[state_data["year"] >= treatment_year][
-            "carbon_intensity"
-        ].values
-
+        post = state_data[state_data["year"] >= treatment_year]["carbon_intensity"].values
         if len(pre) == len(treated_pre) and len(post) == len(treated_post):
             control_pre_matrix.append(pre)
             control_post_matrix.append(post)
@@ -221,14 +188,10 @@ def run_synthetic_control(data, treated_state, treatment_year):
 
     control_pre_matrix = np.array(control_pre_matrix).T
     control_post_matrix = np.array(control_post_matrix).T
-
     # Find optimal weights
     weights = synthetic_control_weights(treated_pre, control_pre_matrix)
-
     logger.info(f"\nSynthetic {treated_state} composed of:")
-    top_contributors = sorted(
-        zip(valid_states, weights), key=lambda x: x[1], reverse=True
-    )
+    top_contributors = sorted(zip(valid_states, weights), key=lambda x: x[1], reverse=True)
     for state, weight in top_contributors[:10]:
         if weight > 0.01:
             logger.info(f"  {state}: {weight * 100:.1f}%")
@@ -236,17 +199,13 @@ def run_synthetic_control(data, treated_state, treatment_year):
     # Generate synthetic control
     synthetic_pre = control_pre_matrix @ weights
     synthetic_post = control_post_matrix @ weights
-
     # Calculate treatment effect
     gap = treated_post - synthetic_post
     avg_effect = gap.mean()
-
     # Pre-treatment fit
     pre_rmse = np.sqrt(np.mean((treated_pre - synthetic_pre) ** 2))
-
     logger.info(f"\nPre-treatment fit RMSE: {pre_rmse:.6f}")
     logger.info(f"Average treatment effect: {avg_effect:.6f} tons/MWh")
-
     return {
         "weights": weights,
         "states": valid_states,
@@ -265,27 +224,19 @@ def run_propensity_score_matching(data, treatment_year):
     Note: This creates a hypothetical plant-level treatment for demonstration
     """
     logger.info("=== [3/3] PROPENSITY SCORE MATCHING ===")
-
-    logger.info(
-        "  Note: Using simplified state-level demo (real PSM requires plant-level data)"
-    )
-
+    logger.info("  Note: Using simplified state-level demo (real PSM requires plant-level data)")
     # Use states as units, create features for pre-treatment period
     pre_data = data[data["year"] < treatment_year].copy()
-
     # Calculate pre-treatment averages by state
     state_features = (
         pre_data.groupby("state")
         .agg({"carbon_intensity": ["mean", "std"], "generation": "mean", "co2": "mean"})
         .reset_index()
     )
-
     state_features.columns = ["state", "avg_carbon", "std_carbon", "avg_gen", "avg_co2"]
     state_features["treated"] = state_features["state"].isin(TREATED_STATES).astype(int)
-
     # Drop states with missing values
     state_features = state_features.dropna()
-
     if len(state_features) < 10:
         logger.info("  ✗ Insufficient states for PSM")
         return None
@@ -294,49 +245,33 @@ def run_propensity_score_matching(data, treatment_year):
     feature_cols = ["avg_carbon", "std_carbon", "avg_gen", "avg_co2"]
     X = state_features[feature_cols]
     y = state_features["treated"]
-
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-
     ps_model = LogisticRegression(random_state=RANDOM_STATE, max_iter=1000)
     ps_model.fit(X_scaled, y)
-
     state_features["propensity_score"] = ps_model.predict_proba(X_scaled)[:, 1]
-
     logger.info("\nPropensity Score Distribution:")
     logger.info(
-        state_features.groupby("treated")["propensity_score"].describe()[
-            ["mean", "min", "max"]
-        ]
+        state_features.groupby("treated")["propensity_score"].describe()[["mean", "min", "max"]]
     )
-
     # Match treated to control units
     treated = state_features[state_features["treated"] == 1]
     control = state_features[state_features["treated"] == 0]
-
     if len(treated) == 0 or len(control) == 0:
         logger.info("  ✗ Need both treated and control units")
         return None
 
     nn = NearestNeighbors(n_neighbors=1, metric="euclidean")
     nn.fit(control[["propensity_score"]])
-
     distances, indices = nn.kneighbors(treated[["propensity_score"]])
-
     matched_control = control.iloc[indices.flatten()]
-
     # Get post-treatment outcomes - VECTORIZED (100x faster)
     post_data = data[data["year"] >= treatment_year]
-
     # Vectorized groupby operation instead of iterrows()
     state_means = post_data.groupby("state")["carbon_intensity"].mean()
-
     # Get outcomes for treated and control states
     treated_outcomes = state_means.reindex(treated["state"]).dropna().values.tolist()
-    control_outcomes = (
-        state_means.reindex(matched_control["state"]).dropna().values.tolist()
-    )
-
+    control_outcomes = state_means.reindex(matched_control["state"]).dropna().values.tolist()
     if len(treated_outcomes) == 0 or len(control_outcomes) == 0:
         logger.info("  ✗ Could not compute outcomes")
         return None
@@ -346,11 +281,9 @@ def run_propensity_score_matching(data, treatment_year):
     se = np.std(np.array(treated_outcomes) - np.array(control_outcomes)) / np.sqrt(
         len(treated_outcomes)
     )
-
     logger.info(f"\nAverage Treatment Effect on Treated (ATT): {att:.6f}")
     logger.error(f"Standard Error: {se:.6f}", exc_info=True)
     logger.info(f"95% CI: [{att - 1.96 * se:.6f}, {att + 1.96 * se:.6f}]")
-
     if abs(att) / se > 1.96:
         logger.info("  ✓ Statistically significant at 5% level")
     else:
@@ -370,27 +303,18 @@ def visualize_results(
 ):
     """Create visualization of causal inference results"""
     logger.info("\nGenerating visualizations...")
-
     if plot:
         fig, axes = plt.subplots(2, 2, figsize=(16, 10))
-
         # Plot 1: DiD - Parallel trends
         ax1 = axes[0, 0]
-
         treated_trend = (
-            data[data["state"].isin(treated_states)]
-            .groupby("year")["carbon_intensity"]
-            .mean()
+            data[data["state"].isin(treated_states)].groupby("year")["carbon_intensity"].mean()
         )
         control_trend = (
-            data[~data["state"].isin(treated_states)]
-            .groupby("year")["carbon_intensity"]
-            .mean()
+            data[~data["state"].isin(treated_states)].groupby("year")["carbon_intensity"].mean()
         )
-
         pre_mask = treated_trend.index < treatment_year
         post_mask = treated_trend.index >= treatment_year
-
         ax1.plot(
             treated_trend.index[pre_mask],
             treated_trend.values[pre_mask],
@@ -409,7 +333,6 @@ def visualize_results(
             color="#e74c3c",
             label="Treated (post)",
         )
-
         ax1.plot(
             control_trend.index[pre_mask],
             control_trend.values[pre_mask],
@@ -428,41 +351,27 @@ def visualize_results(
             color="#3498db",
             label="Control (post)",
         )
-
-        ax1.axvline(
-            treatment_year - 0.5, color="black", linestyle="--", linewidth=2, alpha=0.5
-        )
+        ax1.axvline(treatment_year - 0.5, color="black", linestyle="--", linewidth=2, alpha=0.5)
         ax1.set_xlabel("Year", fontweight="bold", fontsize=11)
         ax1.set_ylabel("Carbon Intensity", fontweight="bold", fontsize=11)
         ax1.set_title("Difference-in-Differences", fontweight="bold", fontsize=12)
         ax1.legend(fontsize=9)
         # Plot 2: Event study
         ax2 = axes[0, 1]
-
         event_time = did_results["event_study"]["time"]
         event_coefs = did_results["event_study"]["coefficients"]
-
-        ax2.plot(
-            event_time, event_coefs, "o-", linewidth=2, markersize=7, color="#e74c3c"
-        )
+        ax2.plot(event_time, event_coefs, "o-", linewidth=2, markersize=7, color="#e74c3c")
         ax2.axhline(0, color="black", linestyle="-", linewidth=1)
         ax2.axvline(-0.5, color="gray", linestyle="--", linewidth=2, alpha=0.5)
         ax2.fill_between(event_time, -0.02, 0.02, alpha=0.2, color="green")
-
         ax2.set_xlabel("Years Relative to Treatment", fontweight="bold", fontsize=11)
         ax2.set_ylabel("Treatment Effect", fontweight="bold", fontsize=11)
         ax2.set_title("Event Study", fontweight="bold", fontsize=12)
         # Plot 3: Synthetic control (if available)
         ax3 = axes[1, 0]
-
         if sc_results:
-            years_pre = range(
-                treatment_year - len(sc_results["treated_pre"]), treatment_year
-            )
-            years_post = range(
-                treatment_year, treatment_year + len(sc_results["treated_post"])
-            )
-
+            years_pre = range(treatment_year - len(sc_results["treated_pre"]), treatment_year)
+            years_post = range(treatment_year, treatment_year + len(sc_results["treated_post"]))
             ax3.plot(
                 list(years_pre),
                 sc_results["treated_pre"],
@@ -480,7 +389,6 @@ def visualize_results(
                 markersize=6,
                 color="#e74c3c",
             )
-
             ax3.plot(
                 list(years_pre),
                 sc_results["synthetic_pre"],
@@ -500,7 +408,6 @@ def visualize_results(
                 color="gray",
                 alpha=0.7,
             )
-
             ax3.axvline(
                 treatment_year - 0.5,
                 color="black",
@@ -527,13 +434,10 @@ def visualize_results(
         # Plot 4: Summary
         ax4 = axes[1, 1]
         ax4.axis("off")
-
         summary_text = f"""
     CAUSAL INFERENCE SUMMARY
-
     Treatment Year: {treatment_year}
     Treated States: {", ".join(treated_states)}
-
     DiD Estimate:
       Effect: {did_results["treatment_effect"]:.6f}
       P-value: {did_results["pvalue"]:.4f}
@@ -547,7 +451,6 @@ def visualize_results(
       {"Policy reduced emissions" if did_results["treatment_effect"] < 0 else "Policy increased emissions"}
       {"significantly" if did_results["pvalue"] < 0.05 else "(not significant)"}
         """
-
         ax4.text(
             0.1,
             0.95,
@@ -558,7 +461,6 @@ def visualize_results(
             fontfamily="monospace",
             bbox={"boxstyle": "round", "facecolor": "lightblue", "alpha": 0.3},
         )
-
         plt.suptitle(
             "Causal Inference: Policy Impact Evaluation",
             fontsize=16,
@@ -566,7 +468,6 @@ def visualize_results(
             y=0.995,
         )
         plt.tight_layout()
-
         plt.savefig("04_causal_inference_results.png", dpi=300, bbox_inches="tight")
     logger.info("  Saved: 04_causal_inference_results.png")
 
@@ -574,24 +475,17 @@ def visualize_results(
 def main():
     """Main execution"""
     logger.info("CAUSAL INFERENCE - PRODUCTION RUN")
-
     # Load data
     data = load_state_level_data()
-
     # Run analyses
     did_results = run_difference_in_differences(data, TREATED_STATES, TREATMENT_YEAR)
-
     # Synthetic control (use first treated state as example)
     sc_results = run_synthetic_control(data, TREATED_STATES[0], TREATMENT_YEAR)
-
     # Propensity score matching
     psm_results = run_propensity_score_matching(data, TREATMENT_YEAR)
-
     # Visualize
     visualize_results(data, did_results, sc_results, TREATMENT_YEAR, TREATED_STATES)
-
     logger.info("=== ✓ Complete! ===")
-
     return {"did": did_results, "synthetic_control": sc_results, "psm": psm_results}
 
 
