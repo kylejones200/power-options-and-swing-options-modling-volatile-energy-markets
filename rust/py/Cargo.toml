@@ -1,0 +1,15 @@
+[package]
+name = "power_options_and_swing_options_modling_volatile_energy_markets_rs"
+description = "Python bindings (PyO3) for power_options_and_swing_options_modling_volatile_energy_markets_core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "power_options_and_swing_options_modling_volatile_energy_markets_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+power_options_and_swing_options_modling_volatile_energy_markets_core = { path = "../core" }
+pyo3 = { version = "0.28", features = ["extension-module"] }
+numpy = "0.28"

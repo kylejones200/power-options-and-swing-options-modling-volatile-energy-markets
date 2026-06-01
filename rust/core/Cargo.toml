@@ -1,0 +1,9 @@
+[package]
+name = "power_options_and_swing_options_modling_volatile_energy_markets_core"
+description = "European call intrinsic value batch"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"

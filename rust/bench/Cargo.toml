@@ -1,0 +1,13 @@
+[package]
+name = "power_options_and_swing_options_modling_volatile_energy_markets_bench"
+description = "Standalone Rust benchmark (no Python)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "bench"
+path = "src/main.rs"
+
+[dependencies]
+power_options_and_swing_options_modling_volatile_energy_markets_core = { path = "../core" }
